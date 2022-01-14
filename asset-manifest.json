@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/remy-viz-1/static/css/main.e6c13ad2.css",
+    "main.js": "/remy-viz-1/static/js/main.bf48f3bd.js",
+    "static/js/787.2f662d75.chunk.js": "/remy-viz-1/static/js/787.2f662d75.chunk.js",
+    "index.html": "/remy-viz-1/index.html",
+    "main.e6c13ad2.css.map": "/remy-viz-1/static/css/main.e6c13ad2.css.map",
+    "main.bf48f3bd.js.map": "/remy-viz-1/static/js/main.bf48f3bd.js.map",
+    "787.2f662d75.chunk.js.map": "/remy-viz-1/static/js/787.2f662d75.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.bf48f3bd.js"
+  ]
+}
