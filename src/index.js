@@ -12,7 +12,12 @@ let linkStrengthBoundary = 5;
 const nodesData = [];
 const linksData = [];
 let max_x = 0;
+let max_y = 0;
+let max_z = 0;
 let svg;
+let topView;
+let sideView1;
+let sideView2;
 
 class LoadButton extends React.Component{
   constructor(props) {
@@ -80,12 +85,11 @@ function getFilteredLinkData() {
 }
 
 function updateLinkVisibility(){
-  const t = svg.transition().duration(250);
   d3.select('#flat_network')
     .select('g')
     .select('#links')
     .selectAll('line')
-    .data(getFilteredLinkData(), d=> d)
+    .data(getFilteredLinkData(), d => d.id)
     .join(
       enter => {
         enter
@@ -93,12 +97,11 @@ function updateLinkVisibility(){
         .attr("stroke", '#aaa')
         .attr("stroke-width", .3)
         .attr("x1", (d)=>nodesData[d.source].x/max_x * width) 
-        .attr("y1", (d)=>nodesData[d.source].y/max_x * width)
+        .attr("y1", (d)=>(max_y - nodesData[d.source].y)/max_x * width)
         .attr("x2", (d)=>nodesData[d.target].x/max_x * width)
-        .attr("y2", (d)=>nodesData[d.target].y/max_x * width);
+        .attr("y2", (d)=>(max_y - nodesData[d.target].y)/max_x * width);
       },
-      update => {update.attr("stroke", "blue");
-    },
+      update => {},
       exit => {
         exit.remove()
       }
@@ -146,39 +149,30 @@ async function generateNetwork(){
     }
   }
 
-
-
   max_x = Math.max.apply(Math, metrics.map(row => row[0]));
+  max_y = Math.max.apply(Math, metrics.map(row => row[1]));
+  max_z = Math.max.apply(Math, metrics.map(row => row[2]));
   
   svg = d3.select('#flat_network')
     .append('svg')
     .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("height", height + margin.top + margin.bottom);
+    
+  topView = svg.append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  svg.append('g')
-    .attr('id', 'links')
-    .selectAll('line')
-    .data(getFilteredLinkData())
-    .enter()
-    .append('line')
-    .attr("stroke", "#aaa")
-    .attr("stroke-width", .3)
-    .attr("x1", (d)=>nodesData[d.source].x/max_x * width) 
-    .attr("y1", (d)=>nodesData[d.source].y/max_x * width)
-    .attr("x2", (d)=>nodesData[d.target].x/max_x * width)
-    .attr("y2", (d)=>nodesData[d.target].y/max_x * width)
-    .attr("id", (d)=>d.id);
+  topView.append('g')
+    .attr('id', 'links');
+  updateLinkVisibility();
 
-  svg.append('g')
+  topView.append('g')
     .attr('id', 'nodes')
     .selectAll('circle')
     .data(nodesData)
     .enter()
     .append("circle")
     .attr("cx", d=>d.x/max_x * width )
-    .attr("cy", d=>d.y/max_x * width )
+    .attr("cy", d=>(max_y-d.y)/max_x * width )
     .attr("r", d=>d.size*2.5)
     .style("fill", d=>{
       switch (d.hemisphere) {
@@ -190,7 +184,6 @@ async function generateNetwork(){
           return "black"
       }
     }); 
-
 }
 
 const IndexPage = () => {
