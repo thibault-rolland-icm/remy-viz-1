@@ -5,16 +5,18 @@ import ReactDOM from "react-dom";
 import * as d3 from "d3";
 
 const margin = {top: 30, right: 30, bottom: 60, left: 30},
-  width = 450 - margin.left - margin.right,
-  height = 900 - margin.top - margin.bottom;
+  width = 400 - margin.left - margin.right,
+  height = 700 - margin.top - margin.bottom;
 
 let linkStrengthBoundary = 5;
 const nodesData = [];
-const linksData = [];
+const allLinksData = [];
+const hemisphere1LinksData = [];
+const hemisphere2LinksData = [];
 let max_x = 0;
 let max_y = 0;
 let max_z = 0;
-let svg;
+let mean_y = 0;
 let topView;
 let sideView1;
 let sideView2;
@@ -64,7 +66,7 @@ class LinkStrengthBoundaryButton extends React.Component{
   handleChange(event){
     this.setState({value: event.target.value});
     linkStrengthBoundary = event.target.value / 10;
-    if(svg){
+    if(topView){
       updateLinkVisibility();
     }
   }
@@ -80,16 +82,15 @@ class LinkStrengthBoundaryButton extends React.Component{
   }
 }
 
-function getFilteredLinkData() {
+function getFilteredLinkData(linksData) {
   return linksData.filter((d)=>d.strength >= linkStrengthBoundary)
 }
 
 function updateLinkVisibility(){
-  d3.select('#flat_network')
-    .select('g')
+  d3.select('#top_view')
     .select('#links')
     .selectAll('line')
-    .data(getFilteredLinkData(), d => d.id)
+    .data(getFilteredLinkData(allLinksData), d => d.id)
     .join(
       enter => {
         enter
@@ -105,7 +106,50 @@ function updateLinkVisibility(){
       exit => {
         exit.remove()
       }
-    )
+    );
+
+    d3.select('#side_view_1')
+    .select('#links')
+    .selectAll('line')
+    .data(getFilteredLinkData(hemisphere1LinksData), d => d.id)
+    .join(
+      enter => {
+        enter
+        .append('line')
+        .attr("stroke", '#aaa')
+        .attr("stroke-width", .3)
+        .attr("x1", (d)=>nodesData[d.source].y/max_x * width) 
+        .attr("y1", (d)=>(max_z - nodesData[d.source].z)/max_x * width)
+        .attr("x2", (d)=>nodesData[d.target].y/max_x * width)
+        .attr("y2", (d)=>(max_z - nodesData[d.target].z)/max_x * width);
+      },
+      update => {},
+      exit => {
+        exit.remove()
+      }
+    );
+
+
+    d3.select('#side_view_2')
+    .select('#links')
+    .selectAll('line')
+    .data(getFilteredLinkData(hemisphere2LinksData), d => d.id)
+    .join(
+      enter => {
+        enter
+        .append('line')
+        .attr("stroke", '#aaa')
+        .attr("stroke-width", .3)
+        .attr("x1", (d)=> (2 * mean_y - nodesData[d.source].y)/max_x * width) 
+        .attr("y1", (d)=>(max_z - nodesData[d.source].z)/max_x * width)
+        .attr("x2", (d)=> (2 * mean_y - nodesData[d.target].y)/max_x * width)
+        .attr("y2", (d)=>(max_z - nodesData[d.target].z)/max_x * width);
+      },
+      update => {},
+      exit => {
+        exit.remove()
+      }
+    );
 }
 
 async function getData(url){
@@ -140,30 +184,34 @@ async function generateNetwork(){
 
   for (let i = 0; i <  adjacencyMatrix.length; i++){
     for (let j = 0; j < i; j++){
-      linksData.push({
-        "id": i.toString() + ";" + j.toString(),
-        "source": i.toString(),
-        "target": j.toString(),
-        "strength": adjacencyMatrix[i][j]
-      })
+      let dat = {"id": i.toString() + ";" + j.toString(),
+      "source": i.toString(),
+      "target": j.toString(),
+      "strength": adjacencyMatrix[i][j]};
+      allLinksData.push(dat)
+      if (nodesData[i].hemisphere == 1 && nodesData[j].hemisphere == 1){
+        hemisphere1LinksData.push(dat);
+      }
+      if (nodesData[i].hemisphere == 2 && nodesData[j].hemisphere == 2){
+        hemisphere2LinksData.push(dat);
+      }
     }
   }
 
   max_x = Math.max.apply(Math, metrics.map(row => row[0]));
   max_y = Math.max.apply(Math, metrics.map(row => row[1]));
   max_z = Math.max.apply(Math, metrics.map(row => row[2]));
-  
-  svg = d3.select('#flat_network')
+  mean_y = metrics.map(row => row[1]).reduce((a,b) => a + b) / metrics.length;
+
+  topView = d3.select('#top_view')
     .append('svg')
     .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom);
-    
-  topView = svg.append("g")
-  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   topView.append('g')
     .attr('id', 'links');
-  updateLinkVisibility();
 
   topView.append('g')
     .attr('id', 'nodes')
@@ -184,6 +232,72 @@ async function generateNetwork(){
           return "black"
       }
     }); 
+
+  sideView1 = d3.select('#side_view_1')
+    .append('svg')
+    .attr("width", height + margin.left + margin.right)
+    .attr("height", width + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+  sideView1.append('g')
+    .attr('id', 'links');
+
+  sideView1.append('g')
+    .attr('id', 'nodes')
+    .selectAll('circle')
+    .data(nodesData)
+    .enter()
+    .filter(function(d) { return d.hemisphere == 1 })
+    .append("circle")
+    .attr("cx", d=>d.y/max_x * width )
+    .attr("cy", d=>(max_z-d.z)/max_x * width )
+    .attr("r", d=>d.size*2.5)
+    .style("fill", d=>{
+      switch (d.hemisphere) {
+        case 1:
+          return "#1E90FF"
+        case 2:
+          return "#FF8C00"
+        default:
+          return "black"
+      }
+    }); 
+
+    sideView2 = d3.select('#side_view_2')
+    .append('svg')
+    .attr("width", height + margin.left + margin.right)
+    .attr("height", width + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+  sideView2.append('g')
+    .attr('id', 'links');
+
+  sideView2.append('g')
+    .attr('id', 'nodes')
+    .selectAll('circle')
+    .data(nodesData)
+    .enter()
+    .filter(function(d) { return d.hemisphere == 2 })
+    .append("circle")
+    .attr("cx", d=>(2*mean_y- d.y)/max_x * width )
+    .attr("cy", d=>(max_z-d.z)/max_x * width )
+    .attr("r", d=>d.size*2.5)
+    .style("fill", d=>{
+      switch (d.hemisphere) {
+        case 1:
+          return "#1E90FF"
+        case 2:
+          return "#FF8C00"
+        default:
+          return "black"
+      }
+    }); 
+
+    updateLinkVisibility();
 }
 
 const IndexPage = () => {
@@ -193,7 +307,13 @@ const IndexPage = () => {
       <MetricsFileLoadButton label="Metrics file"/>
       <button onClick={generateNetwork}>Generate</button>
       <LinkStrengthBoundaryButton></LinkStrengthBoundaryButton>
-      <div id="flat_network"></div>
+      <div id="networks">
+        <div id="top_view"></div>
+        <div id="side_networks">
+          <div id="side_view_1"></div>
+          <div id="side_view_2"></div>
+        </div>
+      </div>
     </main>
   )
 }
