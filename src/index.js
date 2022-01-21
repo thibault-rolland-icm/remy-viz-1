@@ -4,22 +4,34 @@ import * as React from "react";
 import ReactDOM from "react-dom";
 import * as d3 from "d3";
 
-const margin = {top: 30, right: 30, bottom: 60, left: 30},
-  width = 400 - margin.left - margin.right,
-  height = 700 - margin.top - margin.bottom;
+const leftNodeColor = "#FF8C00";
+const rightNodeColor = "#1E90FF";
+const defaultNodeColor = "black";
 
-let linkStrengthBoundary = 5;
+const margin = {top: 30, right: 30, bottom: 30, left: 30},
+  width = 450 - margin.left - margin.right,
+  height = 450 - margin.top - margin.bottom;
+
+let linkStrengthBoundary = 1;
 const nodesData = [];
 const allLinksData = [];
 const hemisphere1LinksData = [];
 const hemisphere2LinksData = [];
-let max_x = 0;
-let max_y = 0;
-let max_z = 0;
-let mean_y = 0;
+let max_x;
+let max_y;
+let max_z;
+let min_x;
+let min_y ;
+let min_z;
+let mean_x;
+let mean_y;
+let mean_z;
+let scaling_factor;
 let topView;
 let sideView1;
 let sideView2;
+let adjacencyMatrixFile;
+let metricsFile;
 
 class LoadButton extends React.Component{
   constructor(props) {
@@ -60,12 +72,12 @@ class MetricsFileLoadButton extends LoadButton {
 class LinkStrengthBoundaryButton extends React.Component{
   constructor(props){
     super(props);
-    this.state = {value: linkStrengthBoundary * 10};
+    this.state = {value: linkStrengthBoundary};
     this.handleChange = this.handleChange.bind(this);
   }
   handleChange(event){
     this.setState({value: event.target.value});
-    linkStrengthBoundary = event.target.value / 10;
+    linkStrengthBoundary = Math.exp(event.target.value) -1;
     if(topView){
       updateLinkVisibility();
     }
@@ -74,7 +86,7 @@ class LinkStrengthBoundaryButton extends React.Component{
   render(){
     return (
       <div>
-        <input type="range" min="0" max="100" value={this.state.value} onChange={this.handleChange}></input>
+        <input type="range" min="0" max="2.5" step=".0001" value={this.state.value} onChange={this.handleChange}></input>
         <div>{linkStrengthBoundary}</div>
         <label>Min link strength</label>
       </div>
@@ -97,10 +109,10 @@ function updateLinkVisibility(){
         .append('line')
         .attr("stroke", '#aaa')
         .attr("stroke-width", .3)
-        .attr("x1", (d)=>nodesData[d.source].x/max_x * width) 
-        .attr("y1", (d)=>(max_y - nodesData[d.source].y)/max_x * width)
-        .attr("x2", (d)=>nodesData[d.target].x/max_x * width)
-        .attr("y2", (d)=>(max_y - nodesData[d.target].y)/max_x * width);
+        .attr("x1", (d)=>getXTopView(nodesData[d.source])) 
+        .attr("y1", (d)=>getYTopView(nodesData[d.source]))
+        .attr("x2", (d)=>getXTopView(nodesData[d.target]))
+        .attr("y2", (d)=>getYTopView(nodesData[d.target]));
       },
       update => {},
       exit => {
@@ -118,10 +130,10 @@ function updateLinkVisibility(){
         .append('line')
         .attr("stroke", '#aaa')
         .attr("stroke-width", .3)
-        .attr("x1", (d)=>nodesData[d.source].y/max_x * width) 
-        .attr("y1", (d)=>(max_z - nodesData[d.source].z)/max_x * width)
-        .attr("x2", (d)=>nodesData[d.target].y/max_x * width)
-        .attr("y2", (d)=>(max_z - nodesData[d.target].z)/max_x * width);
+        .attr("x1", (d)=>getXSideView1(nodesData[d.source])) 
+        .attr("y1", (d)=>getYSideView1(nodesData[d.source]))
+        .attr("x2", (d)=>getXSideView1(nodesData[d.target]))
+        .attr("y2", (d)=>getYSideView1(nodesData[d.target]));
       },
       update => {},
       exit => {
@@ -140,10 +152,10 @@ function updateLinkVisibility(){
         .append('line')
         .attr("stroke", '#aaa')
         .attr("stroke-width", .3)
-        .attr("x1", (d)=> (2 * mean_y - nodesData[d.source].y)/max_x * width) 
-        .attr("y1", (d)=>(max_z - nodesData[d.source].z)/max_x * width)
-        .attr("x2", (d)=> (2 * mean_y - nodesData[d.target].y)/max_x * width)
-        .attr("y2", (d)=>(max_z - nodesData[d.target].z)/max_x * width);
+        .attr("x1", (d)=> getXSideView2(nodesData[d.source])) 
+        .attr("y1", (d)=> getYSideView2(nodesData[d.source]))
+        .attr("x2", (d)=> getXSideView2(nodesData[d.target]))
+        .attr("y2", (d)=> getYSideView2(nodesData[d.target]));
       },
       update => {},
       exit => {
@@ -160,8 +172,24 @@ async function getData(url){
   return csvParsedList;
 }
 
-let adjacencyMatrixFile;
-let metricsFile;
+function getXTopView(d){
+  return d.x * width;
+}
+function getYTopView(d){
+  return (1 - d.y) * width;
+}
+function getXSideView1(d){
+  return d.y * width;
+}
+function getYSideView1(d){
+  return (1 - d.z) * width;
+}
+function getXSideView2(d){
+  return (1 - d.y) * width;
+}
+function getYSideView2(d){
+  return (1 - d.z) * width;
+}
 
 async function generateNetwork(){
   const adjacencyMatrixUrl = window.URL.createObjectURL(adjacencyMatrixFile);
@@ -180,15 +208,31 @@ async function generateNetwork(){
       "size": metrics[i][4]
     })
   }
+  max_x = Math.max.apply(Math, nodesData.map(row => row.x));
+  max_y = Math.max.apply(Math, nodesData.map(row => row.y));
+  max_z = Math.max.apply(Math, nodesData.map(row => row.z));
+  min_x = Math.min.apply(Math, nodesData.map(row => row.x));
+  min_y = Math.min.apply(Math, nodesData.map(row => row.y));
+  min_z = Math.min.apply(Math, nodesData.map(row => row.z));
+  mean_x = nodesData.map(row => row.x).reduce((a,b) => a + b) / nodesData.length;
+  mean_y = nodesData.map(row => row.y).reduce((a,b) => a + b) / nodesData.length;
+  mean_z = nodesData.map(row => row.z).reduce((a,b) => a + b) / nodesData.length;
+  scaling_factor = Math.max(max_x - min_x, max_y - min_y, max_z - min_z);
+  for (let node of nodesData){
+    node.x = (node.x - min_x) / scaling_factor;
+    node.y = (node.y - min_y) / scaling_factor;
+    node.z = (node.z - min_z) / scaling_factor;
+  }
   nodesData.sort((a,b) => b.strength - a.strength);
 
   for (let i = 0; i <  adjacencyMatrix.length; i++){
     for (let j = 0; j < i; j++){
+      if (adjacencyMatrix[i][j] == 0) {continue;}
       let dat = {"id": i.toString() + ";" + j.toString(),
       "source": i.toString(),
       "target": j.toString(),
       "strength": adjacencyMatrix[i][j]};
-      allLinksData.push(dat)
+      allLinksData.push(dat);
       if (nodesData[i].hemisphere == 1 && nodesData[j].hemisphere == 1){
         hemisphere1LinksData.push(dat);
       }
@@ -197,11 +241,6 @@ async function generateNetwork(){
       }
     }
   }
-
-  max_x = Math.max.apply(Math, metrics.map(row => row[0]));
-  max_y = Math.max.apply(Math, metrics.map(row => row[1]));
-  max_z = Math.max.apply(Math, metrics.map(row => row[2]));
-  mean_y = metrics.map(row => row[1]).reduce((a,b) => a + b) / metrics.length;
 
   topView = d3.select('#top_view')
     .append('svg')
@@ -219,17 +258,17 @@ async function generateNetwork(){
     .data(nodesData)
     .enter()
     .append("circle")
-    .attr("cx", d=>d.x/max_x * width )
-    .attr("cy", d=>(max_y-d.y)/max_x * width )
+    .attr("cx", getXTopView)
+    .attr("cy", getYTopView)
     .attr("r", d=>d.size*2.5)
     .style("fill", d=>{
       switch (d.hemisphere) {
         case 1:
-          return "#1E90FF"
+          return leftNodeColor
         case 2:
-          return "#FF8C00"
+          return rightNodeColor
         default:
-          return "black"
+          return defaultNodeColor
       }
     }); 
 
@@ -251,23 +290,23 @@ async function generateNetwork(){
     .enter()
     .filter(function(d) { return d.hemisphere == 1 })
     .append("circle")
-    .attr("cx", d=>d.y/max_x * width )
-    .attr("cy", d=>(max_z-d.z)/max_x * width )
+    .attr("cx", getXSideView1)
+    .attr("cy", getYSideView1)
     .attr("r", d=>d.size*2.5)
     .style("fill", d=>{
       switch (d.hemisphere) {
         case 1:
-          return "#1E90FF"
+          return leftNodeColor
         case 2:
-          return "#FF8C00"
+          return rightNodeColor
         default:
-          return "black"
+          return defaultNodeColor
       }
     }); 
 
     sideView2 = d3.select('#side_view_2')
     .append('svg')
-    .attr("width", height + margin.left + margin.right)
+    .attr("width", width + margin.top + margin.bottom)
     .attr("height", width + margin.top + margin.bottom)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -283,17 +322,17 @@ async function generateNetwork(){
     .enter()
     .filter(function(d) { return d.hemisphere == 2 })
     .append("circle")
-    .attr("cx", d=>(2*mean_y- d.y)/max_x * width )
-    .attr("cy", d=>(max_z-d.z)/max_x * width )
+    .attr("cx", getXSideView2 )
+    .attr("cy", getYSideView2 )
     .attr("r", d=>d.size*2.5)
     .style("fill", d=>{
       switch (d.hemisphere) {
         case 1:
-          return "#1E90FF"
+          return leftNodeColor
         case 2:
-          return "#FF8C00"
+          return rightNodeColor
         default:
-          return "black"
+          return defaultNodeColor
       }
     }); 
 
