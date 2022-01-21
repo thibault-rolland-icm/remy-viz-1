@@ -12,6 +12,8 @@ const margin = {top: 30, right: 30, bottom: 30, left: 30},
   width = 450 - margin.left - margin.right,
   height = 450 - margin.top - margin.bottom;
 
+const R = 12;
+
 let linkStrengthBoundary = 1;
 const nodesData = [];
 const allLinksData = [];
@@ -26,6 +28,7 @@ let min_z;
 let mean_x;
 let mean_y;
 let mean_z;
+let max_r;
 let scaling_factor;
 let topView;
 let sideView1;
@@ -190,6 +193,9 @@ function getXSideView2(d){
 function getYSideView2(d){
   return (1 - d.z) * width;
 }
+function getR(d){
+  return d.size / max_r * R;
+}
 
 async function generateNetwork(){
   const adjacencyMatrixUrl = window.URL.createObjectURL(adjacencyMatrixFile);
@@ -217,6 +223,7 @@ async function generateNetwork(){
   mean_x = nodesData.map(row => row.x).reduce((a,b) => a + b) / nodesData.length;
   mean_y = nodesData.map(row => row.y).reduce((a,b) => a + b) / nodesData.length;
   mean_z = nodesData.map(row => row.z).reduce((a,b) => a + b) / nodesData.length;
+  max_r = Math.max.apply(Math, nodesData.map(row => row.size));
   scaling_factor = Math.max(max_x - min_x, max_y - min_y, max_z - min_z);
   for (let node of nodesData){
     node.x = (node.x - min_x) / scaling_factor;
@@ -260,7 +267,7 @@ async function generateNetwork(){
     .append("circle")
     .attr("cx", getXTopView)
     .attr("cy", getYTopView)
-    .attr("r", d=>d.size*2.5)
+    .attr("r", getR)
     .style("fill", d=>{
       switch (d.hemisphere) {
         case 1:
@@ -292,7 +299,7 @@ async function generateNetwork(){
     .append("circle")
     .attr("cx", getXSideView1)
     .attr("cy", getYSideView1)
-    .attr("r", d=>d.size*2.5)
+    .attr("r", getR)
     .style("fill", d=>{
       switch (d.hemisphere) {
         case 1:
@@ -324,7 +331,7 @@ async function generateNetwork(){
     .append("circle")
     .attr("cx", getXSideView2 )
     .attr("cy", getYSideView2 )
-    .attr("r", d=>d.size*2.5)
+    .attr("r", getR)
     .style("fill", d=>{
       switch (d.hemisphere) {
         case 1:
