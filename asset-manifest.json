@@ -1,15 +1,17 @@
 {
   "files": {
-    "main.css": "/remy-viz-1/static/css/main.13cac099.css",
-    "main.js": "/remy-viz-1/static/js/main.a9602bfa.js",
+    "main.css": "/remy-viz-1/static/css/main.c4117550.css",
+    "main.js": "/remy-viz-1/static/js/main.77f34d1e.js",
     "static/js/787.2f662d75.chunk.js": "/remy-viz-1/static/js/787.2f662d75.chunk.js",
+    "static/media/brain_top_grey.png": "/remy-viz-1/static/media/brain_top_grey.46088341b1d0546b28b6.png",
+    "static/media/brain_side_grey.png": "/remy-viz-1/static/media/brain_side_grey.5440867f32fa63f75e7e.png",
     "index.html": "/remy-viz-1/index.html",
-    "main.13cac099.css.map": "/remy-viz-1/static/css/main.13cac099.css.map",
-    "main.a9602bfa.js.map": "/remy-viz-1/static/js/main.a9602bfa.js.map",
+    "main.c4117550.css.map": "/remy-viz-1/static/css/main.c4117550.css.map",
+    "main.77f34d1e.js.map": "/remy-viz-1/static/js/main.77f34d1e.js.map",
     "787.2f662d75.chunk.js.map": "/remy-viz-1/static/js/787.2f662d75.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.13cac099.css",
-    "static/js/main.a9602bfa.js"
+    "static/css/main.c4117550.css",
+    "static/js/main.77f34d1e.js"
   ]
 }
