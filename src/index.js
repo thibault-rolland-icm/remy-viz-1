@@ -12,6 +12,7 @@ const margin = {top: 30, right: 30, bottom: 30, left: 30},
   width = 450 - margin.left - margin.right,
   height = 450 - margin.top - margin.bottom;
 
+const topViewWidthFactor = 1.3;
 const R = 12;
 
 let linkStrengthBoundary = 1;
@@ -97,6 +98,31 @@ class LinkStrengthBoundaryButton extends React.Component{
   }
 }
 
+function addTopViewBrainPicture() { 
+  var img = document.createElement('img');
+  img.id = 'top_view_brain_support';
+  img.src = require('./brain_top_grey.png');
+  document.getElementById('top_view').appendChild(img);
+  console.log(img);
+}
+
+
+function addSideView1BrainPicture() { 
+  var img = document.createElement('img');
+  img.id = 'side_view_1_brain_support';
+  img.src = require('./brain_side_grey.png');
+  document.getElementById('side_view_1').appendChild(img);
+  console.log(img);
+}
+
+function addSideView2BrainPicture() { 
+  var img = document.createElement('img');
+  img.id = 'side_view_2_brain_support';
+  img.src = require('./brain_side_grey.png');
+  document.getElementById('side_view_2').appendChild(img);
+  console.log(img);
+}
+
 function getFilteredLinkData(linksData) {
   return linksData.filter((d)=>d.strength >= linkStrengthBoundary)
 }
@@ -165,6 +191,10 @@ function updateLinkVisibility(){
         exit.remove()
       }
     );
+
+    addTopViewBrainPicture();
+    addSideView1BrainPicture();
+    addSideView2BrainPicture();
 }
 
 async function getData(url){
@@ -176,10 +206,10 @@ async function getData(url){
 }
 
 function getXTopView(d){
-  return d.x * width;
+  return d.x * width * topViewWidthFactor;
 }
 function getYTopView(d){
-  return (1 - d.y) * width;
+  return (1 - d.y) * width * topViewWidthFactor;
 }
 function getXSideView1(d){
   return d.y * width;
@@ -251,8 +281,8 @@ async function generateNetwork(){
 
   topView = d3.select('#top_view')
     .append('svg')
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
+    .attr("width", width * topViewWidthFactor + margin.left + margin.right)
+    .attr("height", height * topViewWidthFactor + margin.top + margin.bottom)
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
